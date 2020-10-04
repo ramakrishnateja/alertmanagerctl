@@ -1,0 +1,76 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+      - release/*
+      - feature/*
+      - hotfix/*
+    tags:
+      - 'v*.*.*'
+    paths-ignore:
+      - README.md
+      - LICENSE
+      - .travis.yml
+      - .azure-pipeline.yml
+      - templates/azure/*
+
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - README.md
+        - LICENSE
+        - .travis.yml
+        - .azure-pipeline.yml
+        - templates/azure/*
+
+jobs:
+  build_and_test:
+    name: Build and Test
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ubuntu-latest]
+
+    #env:
+    #  SHIFTLEFT_ORG_ID: "${{ secrets.SHIFT_LEFT_ORG }}"
+    #  SHIFTLEFT_ACCESS_TOKEN: "${{ secrets.SHIFT_LEFT_TOKEN }}"
+
+    steps:
+      - name: Set up Go 1.15
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.15
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Create bin dir
+        run: mkdir -p bin
+
+      - name: Build
+        run: make build
+
+      #- name: Run Vulnerability Checks
+      #  run: |
+      #    set -e -x
+      #    curl https://cdn.shiftleft.io/download/sl > $GITHUB_WORKSPACE/sl && chmod a+rx $GITHUB_WORKSPACE/sl
+      #    echo "Sleeping for 60 seconds to avoid concurent request to ShiftLeft as they are rate limited."
+      #    sleep 60
+      #    $GITHUB_WORKSPACE/sl analyze --wait --tag branch=${GITHUB_REF##*/} --tag app.group=MyLabs --tag app.language=go --app MyLabs-G0 --cpg --go ./...
+      #- name : Run Code Quality Checks
+      #  run: |
+      #    set -e -x
+      #    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.31.0
+      #    $(go env GOPATH)/bin/golangci-lint run
+      #- name: Run Unit Tests
+      #  run: make test
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: ${{ matrix.operating-system }}
+          path: bin
